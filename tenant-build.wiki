@@ -1,0 +1,117 @@
+===Basic Setup===
+* If you don't have a tenant of your own, get a tenant. Register on [http://www.jiocloudservices.com www.jiocloudservices.com] for your user/tenant access. This can be accessed only from office network (may not be accessible from VPN/Jionet).
+* Ensure you have a user tied to the above tenant. If you already have a user with you, you can request access to your new tenant with your old user.
+* Create a private network in your tenant
+   $neutron net-create <network_name> (e.g. - neutron net-create devnet)
+   $neutron subnet-create <network_name> <CIDR> (e.g. - neutron subnet-create devnet 10.0.0.0/16) 
+* Ensure that your subnet is 10.0.0.0/16 else you will need to change your hiera to match your network subnet cidr. [[https://github.com/JioCloud/puppet-rjil/commit/4370296ae5b451acda92f40cef9b3e686e307691#diff-47851735775a92959e41b45e8d42d9a3]]
+** copy environment/jio.map.yaml to environment/<your.cloud.provider>.map.yaml. This name should be same as name in `export cloud_provider`
+** Update the network id in the above file with your created network id.
+** Example [https://gist.github.com/sajuptpm/6c8b1aa1dffb4f47e8c0 Hiera and jio.map.yaml Change]
+* Add port 22 rule to default security group (nova secgroup-add-rule default tcp 22 22 0.0.0.0/0 is an open to all example)
+  $nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
+
+* Upload your keypair
+  $ nova keypair-add combo --pub-key ~/.ssh/id_rsa.pub
+
+
+=== Setup httproxy ===
+This is a one time setup required in your tenant.
+====Update====
+* Use this [[https://gist.github.com/anshprat/02f1faaa352292473dce script]] to create your httproxy after the above steps. 
+
+====OR OLD STEPS BELOW====
+
+* copy devbuild.sh [[https://gist.github.com/anshprat/783c8b9dc50804941fec]] into puppet-rjil directory.
+* In devbuild.sh  -
+** uncomment out export layout=external
+** uncomment out export BUILD_TAG=external-at
+** comment out dns_server and http/s_proxy exports
+** Run the modified script
+** Example [[https://gist.github.com/sajuptpm/2e865ea10062d48468e7]]
+
+====/END OLD STEPS====
+
+
+** Wait till the puppet run is complete on this node. Ensure that squid is running on this node. This will take about 40 minutes to finish the setup after you boot the httproxy node.
+
+
+=====ssh config=====
+* Update your ~/.ssh/config to contain this in your laptop/workspace (This is for using the jumphost as proxy.
+
+    Host 49.40.*.* !49.40.64.85
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+        LogLevel ERROR
+        ProxyCommand ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null  -o LogLevel=ERROR 49.40.64.85 nc -q0 %h %p
+
+===Setup your build===
+
+* git clone {puppet-rjil} on your laptop/workspace
+* cd puppet-rjil
+* Update the id of the network you have created in environment/jio.map.yaml
+** Alternately, create a new file environment/anshu-tenant.map.yaml and do an export cloud_provider=anshu-tenant. Update the network id in this..
+
+* Ensure you are connected to the vpn or are in a whitelisted IP which can connect to prod api(required to create servers).
+* Ensure you have installed python-jiocloud module via git. (git is recommended to ensure you have the latest fixes) (pip has old version which is missing some critical functionality and will fail for  builds).
+  $git clone git@github.com:JioCloud/python-jiocloud.git
+  $cd python-jiocloud
+  $export PYTHONPATH=$PYTHONPATH:/`pwd`
+* You can add the equivalent of above to your bashrc.
+* In devbuild.sh, the proxy_address/dns_server should be the private ip of the earlier created httproxy node, not the public IP.
+* Ensure your httpproxy vm created above is running. (it takes about 40 mins to complete setup for httpproxy after you create it).
+* Run devbuild.sh from within the puppet-rjil root/base folder [[https://gist.github.com/anshprat/783c8b9dc50804941fec]]
+* Example [[https://gist.github.com/sajuptpm/cc4202bd34abff33458a]]
+
+=== Not seeing Public IP ? ===
+* Check floating Ip quota and remove some floating Ips from your tenant.
+
+=== Error: ssh_exchange_identification: Connection closed by remote host ?===
+
+* Ensure you have added the above specified ssh config [[#ssh_config]]
+* Check direct SSH to any public-ip (49.40.64.*) from your laptop (other than .85)
+
+  $ssh -A ubuntu@<public-ip>
+
+=== How to verify your builds? ===
+Presently the devbuild.sh will not give you jenkins like green or red due to the jumphost in between.
+You need to verify your build manually using..
+* login to bootstrap of your gate
+* run  python -m jiocloud.orchestrate hosts_at_version `cat /etc/current_version`|wc -l
+  12
+* To check which all nodes are yet to come up, check the above command without wc -l, and see the missing nodes. 
+* Login to those vms and check /var/log/syslog to see the present state of puppet-run.
+
+=== How to clean up the created builds? ===
+* Source your rc
+* run <code>python -m jiocloud.apply_resources delete test<BUILD_TAG used in your devbuild.sh> </code>. it should be run from python-jiocloud repository if jiocloud module is not installed.
+** You should only clean up using the above. Doing a simple volume delete will leave around lots of leftover resources.
+
+=== Admin openrc for your build ===
+
+  #!/bin/sh
+  export OS_NO_CACHE='true'
+  export OS_TENANT_NAME='openstack'
+  export OS_USERNAME='admin'
+  export OS_PASSWORD='' Check [[http://jiocloud.rustedhalo.com/jiocloud/index.php/FAQ#Q._Whats_the_admin_credential_for_gate.3F FAQ]]
+  export OS_AUTH_URL='https://identity.jiocloud.com:5000/v2.0/'
+  export OS_AUTH_STRATEGY='keystone'
+  export OS_REGION_NAME='RegionOne'
+  export CINDER_ENDPOINT_TYPE='publicURL'
+  export GLANCE_ENDPOINT_TYPE='publicURL'
+  export KEYSTONE_ENDPOINT_TYPE='publicURL'
+  export NOVA_ENDPOINT_TYPE='publicURL'
+  export NEUTRON_ENDPOINT_TYPE='publicURL'
+
+=== How to create build from your puppet-rjil repo branch ===
+
+  Add/Replace following lines in devbuild.sh
+  export puppet_modules_source_repo=https://github.com/yourname/puppet-rjil
+  export puppet_modules_source_branch=your_branch_name
+
+=== How to create build from puppet-rjil Pull Request ===
+
+  Add/Replace following lines in devbuild.sh
+  export puppet_modules_source_repo=https://github.com/jiocloud/puppet-rjil
+  export pull_request_id=your_pr_number
+
