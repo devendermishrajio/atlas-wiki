@@ -32,14 +32,14 @@ Agent can run either in server or client mode. There must be at least one server
 
 To start the server :
 
-<pre>    consul agent -server -bootstrap-expect &lt;number of servers&gt; -data-dir /tmp/consul -config-dir /etc/consul.d</pre>
+<pre>    consul agent -server -bootstrap-expect &lt;number of servers> -data-dir /tmp/consul -config-dir /etc/consul.d</pre>
 To start the agent as client, do not specify <code>-server</code> and <code>-bootstrap-expect</code> parameters.
 
 In the above cases, if there are multiple interfaces, use option <code>-bind</code> to specify the IP address to be bound.
 
 After starting the server or agent, it is necessary to join the consul. Only joining one node is required. After joining, nodes will gossip each other to propagate the information. To join the consul,
 
-<pre>    consul join &lt;node address&gt;</pre>
+<pre>    consul join &lt;node address></pre>
 In your configuration, make sure that all the node should join the same consul cluster. To ensure that, just make sure that there are no isolated nodes in the graph of initial consul.
 
 For example, below consul of 5 nodes will give two cluster rather one:
@@ -74,12 +74,12 @@ Services can be discovered using:
 To discover services, use
 
 * <code>curl http://localhost:8500/v1/catalog/services</code>: It will list all the services
-* <code>curl http://localhost:8500/v1/catalog/service/&lt;service&gt;</code>: It will list the specified service.
+* <code>curl http://localhost:8500/v1/catalog/service/<service></code>: It will list the specified service.
 
 To discover nodes, use
 
 * <code>curl http://localhost:8500/v1/catalog/nodes</code>: It will list all the nodes.
-* <code>curl http://localhost:8500/v1/catalog/node/&lt;node&gt;</code>: It will list the specified node.
+* <code>curl http://localhost:8500/v1/catalog/node/<node></code>: It will list the specified node.
 
 Response of HTTP API will be in JSON format.
 
@@ -101,15 +101,15 @@ Service can be defined in a configuration file or added at runtime using HTTP AP
 Service definition looks like:
 
 <pre>    {
-      &quot;service&quot;: {
-        &quot;name&quot;: &quot;redis&quot;,
-        &quot;tags&quot;: [&quot;master&quot;],
-        &quot;address&quot;: &quot;127.0.0.1&quot;,
-        &quot;port&quot;: 8000,
-        &quot;checks&quot;: [
+      "service": {
+        "name": "redis",
+        "tags": ["master"],
+        "address": "127.0.0.1",
+        "port": 8000,
+        "checks": [
           {
-            &quot;script&quot;: &quot;/usr/local/bin/check_redis.py&quot;,
-            &quot;interval&quot;: &quot;10s&quot;
+            "script": "/usr/local/bin/check_redis.py",
+            "interval": "10s"
           }
         ]
       }
@@ -121,16 +121,16 @@ This definition must be defined in a json file and present inside configuration 
 Multiple services can be defined as <code>services</code> in an array.
 
 <pre>    {
-      &quot;services&quot;: [
+      "services": [
           {
-            &lt;service definition-1&gt;
+            <service definition-1>
           }
           {
-            &lt;service definition-2&gt;
+            <service definition-2>
           }
           ... 
           {
-            &lt;service definition-n&gt;
+            <service definition-n>
           }
         ]
     }</pre>
@@ -168,32 +168,32 @@ For check definition, see [[Check%20definitions|https://consul.io/docs/agent/che
 A Script check:
 
 <pre>    {
-      &quot;check&quot;: {
-        &quot;id&quot;: &quot;mem-util&quot;,
-        &quot;name&quot;: &quot;Memory utilization&quot;,
-        &quot;script&quot;: &quot;/usr/local/bin/check_mem.py&quot;,
-        &quot;interval&quot;: &quot;10s&quot;
+      "check": {
+        "id": "mem-util",
+        "name": "Memory utilization",
+        "script": "/usr/local/bin/check_mem.py",
+        "interval": "10s"
       }
     }</pre>
 An HTTP Check:
 
 <pre>    {
-      &quot;check&quot;: {
-        &quot;id&quot;: &quot;api&quot;,
-        &quot;name&quot;: &quot;HTTP API on port 5000&quot;,
-        &quot;http&quot;: &quot;http://localhost:5000/health&quot;,
-        &quot;interval&quot;: &quot;10s&quot;,
-        &quot;timeout&quot;: &quot;1s&quot;
+      "check": {
+        "id": "api",
+        "name": "HTTP API on port 5000",
+        "http": "http://localhost:5000/health",
+        "interval": "10s",
+        "timeout": "1s"
       }
     }</pre>
 A TTL Check:
 
 <pre>    {
-      &quot;check&quot;: {
-        &quot;id&quot;: &quot;web-app&quot;,
-        &quot;name&quot;: &quot;Web App Status&quot;,
-        &quot;notes&quot;: &quot;Web app does a curl internally every 10 seconds&quot;,
-        &quot;ttl&quot;: &quot;30s&quot;
+      "check": {
+        "id": "web-app",
+        "name": "Web App Status",
+        "notes": "Web app does a curl internally every 10 seconds",
+        "ttl": "30s"
       }
     }</pre>
 Checks are provided into configuration file or placed inside json file on configuration directory.
@@ -215,16 +215,16 @@ Health Checks can be bound to a service. This check affects the health status of
 Multiple checks can be added into <code>checks</code> as an array.
 
 <pre>    {
-      &quot;checks&quot;: [
+      "checks": [
         {
-          &lt;check definition-1&gt;
+          <check definition-1>
         }
         {
-          &lt;check definition-2&gt;
+          <check definition-2>
         }
         ...
         {
-          &lt;check definition-n&gt;
+          <check definition-n>
         }
       ]
     }</pre>
@@ -236,19 +236,19 @@ HTTP APIs:
 <li><p>For health</p>
 <pre>http://localhost:8500/v1/health/</pre></li>
 <li><p>To check health of a node, use</p>
-<pre>http://localhost:8500/v1/health/node/&lt;node name&gt;</pre></li>
+<pre>http://localhost:8500/v1/health/node/<node name></pre></li>
 <li><p>To check health of a service, use</p>
-<pre>http://localhost:8500/v1/health/checks/&lt;service name&gt;</pre></li>
+<pre>http://localhost:8500/v1/health/checks/<service name></pre></li>
 <li><p>To check node and health info of a service, use</p>
-<pre>http://localhost:8500/v1/health/service/&lt;service name&gt;</pre></li>
+<pre>http://localhost:8500/v1/health/service/<service name></pre></li>
 <li><p>To get the list of services in given state, use</p>
-<pre>http://localhost:8500/v1/health/state/&lt;state&gt;</pre></li></ul>
+<pre>http://localhost:8500/v1/health/state/<state></pre></li></ul>
 
 == DNS Resolution ==
 
 DNS is one of the primary query interface for Consul. DNS mechanism allows service discovery without any significant integration effort.
 
-By default, Consul listen on 127.0.0.1:8600 for DNS queries in the &quot;consul.&quot; domain without support for further DNS recursion (it means if query fails, it will not forward query to other server to get the response).
+By default, Consul listen on 127.0.0.1:8600 for DNS queries in the "consul." domain without support for further DNS recursion (it means if query fails, it will not forward query to other server to get the response).
 
 <code>dig</code> command can be used to discover node and services.
 
