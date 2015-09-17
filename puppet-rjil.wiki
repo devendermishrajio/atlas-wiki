@@ -1,0 +1,94 @@
+= puppet-rjil: Manifest and Modules =
+
+puppet-rjil contains codes related to deployment for JioCloud. Puppet code defines resources and artifacts related to resource. File which contains puppet code is known as manifest and has .pp extension.
+
+Manifest(s) can be reusable by other users/resources. Such manifests can be combined into a module. <code>puppet-rjil</code> is a module which defines resources and other artifacts for a node.
+
+Every node in puppet node is identified by its hostname and has the following format:
+
+<pre>    (role)(number)\_(project_id)</pre>
+<code>role</code> can be bootstrap, apache, st, gcp, cp etc. (More details can be found in <code>site.pp</code> file).
+
+<code>puppet-rjil</code> is responsible for configuring every node to its correct configuration on the basis of its role.
+
+== Directory structure ==
+
+some important directories and files are:
+
+* manifests - Puppet manifests for building JioCloud
+* Vagrantfile: Vagrantfile for faster deployments
+* Puppetfile: List of all puppet modules that need to be installed as dependecies
+* build_script/deploy.sh - Script to deploy JioCloud
+* site.pp: This file defines what module should be included by a node on the basis of its pattern in name. For example, bootstrap nodes are identified by the pattern &quot;^bootstrap[0-9]+&quot;. These nodes include rjil::base, rjil::jiocloud::consul::consul_alerts.
+
+More details can be found in README.md of [https://github.com/JioCloud/puppet-rjil/blob/master/README.md <code>puppet-rjil</code>]
+
+== Nova and Glance sub-module in puppet-rjil. ==
+
+Nova nodes: These nodes use nova sub-module.
+
+* oc Openstack controller node
+* ocdb oc Database
+* gcp Gateway compute node
+* cp Compute node
+* uc Undercloud Controller node
+
+Glance nodes: These nodes use glance sub-module.
+
+* oc
+* ocdb
+* oclb Openstack controller load balancer (lb stands for load balancer)
+* uc
+
+=== What is in nova sub-module? ===
+
+nova sub-module has the following directory structure:
+
+* nova
+** compute
+** rbd.pp: It setup ceph configurations for nova compute node.
+** compute.pp: It setup nova compute.
+** controller.pp: It setup nova controller.
+** logrotate
+*** manage.pp: It setup rjil::jiocloud::logrotate for nova-manage.
+** zmq_config.pp: It setup nova config with ZMQ.
+
+compute.pp and controller.pp are included in site.pp and these two files (classes defined in them) are interface of nova sub-module. Rest are helper for internal use for nova.
+
+==== Setting up nova compute ====
+
+In setting up nova compute, following steps are performed.
+
+* Dependencies are setup:
+** Python package python-six
+** nova client
+** nova
+** nova compute
+** nova network neutron
+** nova copmute driver specific to class
+* On the basis of compute driver (libvirt or ironic), it includes required modules
+* Initialize log
+* consul file for nova-compute is made
+* Configuration file and required commands are executed.
+
+=== What is in glance sub-module? ===
+
+* glance.pp: It defines class rjil::glance for which in turn includes puppet modules and defines related resources (such as consul service).
+** It setup glance registry and API (which is defined in puppet-glance repository).
+** It defines the order that once glance-api and glance-registry services are running, then run httpd (httpd after glance-api and glance-registry).
+** Based on the backend (swift, file, rbd, cinder), it includes the required module.
+** It defines test check for glance-api and glance-registry.
+** It registers consul service JSON files for glance-api and glance-registry and create policy.json file.
+
+== Appendix ==
+
+=== Details about puppet-rjil ===
+
+Please refer README.md of puppet-rjil for mode details [https://github.com/JioCloud/puppet-rjil/blob/master/README.md README]
+
+=== Important Links ===
+
+* [https://docs.puppetlabs.com/pe/latest/puppet_modules_manifests.html Puppet Modules and Manifests]
+* [https://docs.puppetlabs.com/module_cheat_sheet.pdf Puppet Module Cheat Sheet]
+* [https://docs.puppetlabs.com/puppet/latest/reference/dirs_manifest.html Directories: The Main Manifest(s)]
+

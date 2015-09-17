@@ -1,0 +1,55 @@
+= Travis CI =
+
+Travis CI is a continuous integration tool that runs on github project. It is on cloud, unlike Jenkins which is deployed on our premises.
+
+== Quick Start ==
+
+* Login using your GitHub account.
+* Add your repository under &quot;My Repositories&quot;.
+* Add .travis.yml file to your repository (if it is not there).
+
+After that, on git push, it will trigger the build/action. Build/action will be defined in <code>.travis.yml</code>.
+
+Sample <code>.travis.yml</code> file
+
+<pre>    ---
+    sudo: false
+    language: ruby
+    bundler_args: --without development
+    script: 'bundle exec rake travis'
+    cache: bundler
+    matrix:
+      fast_finish: true
+      include:
+      - rvm: 1.9.3
+        env: PUPPET_GEM_VERSION=&quot;~&gt; 3.6.0&quot;
+      - rvm: 1.9.3
+        env: PUPPET_GEM_VERSION=&quot;~&gt; 3.0&quot;
+      - rvm: 2.0.0
+        env: PUPPET_GEM_VERSION=&quot;~&gt; 3.0&quot;
+    notifications:
+      email: false</pre>
+This example is taken from puppet-rjil/.travis.yml.
+
+This file defines how to make build and other settings. For example, it defines that there is no need for sudo privilege. Language is ruby. For reference on keys of <code>.travis.yml</code>, see [http://docs.travis-ci.com/ Documentation].
+
+== Repositories using Travis CI ==
+
+Following repositories are using Travis CI so far - puppet-rjil - puppet-openstack_zeromq - jiocloud-contrail - jiocloud-timezone - jiocloud-memcached - jiocloud-ceph - jiocloud-sudo - python-jiocloud - puppet-aptmirror - puppet-openstack - jiocloud-logrotate
+
+== Appendix ==
+
+=== Validate .travis.yml files ===
+
+<code>.travis.yml</code> file is a YAML file. <code>travis-lint</code> command. It requires Ruby and RubyGems.
+
+To install it:
+
+<pre>      gem install travis-lint</pre>
+To run:
+
+<pre>     travis-lint (your .travis.yml file path)</pre>
+=== More about customizing the build ===
+
+<code>.travis.yml</code> file specifies how to make a build and even test it. It can help in running unit tests. To learn more about see [http://docs.travis-ci.com/user/customizing-the-build/ Customizing the Build].
+

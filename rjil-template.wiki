@@ -1,0 +1,106 @@
+= Templates =
+
+== Aim ==
+
+Cases where an outline file is required, it must be cleanly separated from the puppet code so that these template and code can be changed independently. It also automates the generation of file with some outlining in a clean way.
+
+== What are in templates? ==
+
+Templates are outline of files filled with some variable or action. Template files are in Embedded Ruby (.erb) format which contains ruby code inside. When '''template''' function is called, embedded ruby code insde the files are executed and results are printed in the file itself.
+
+== Dependencies of Templates ==
+
+No external dependency.
+
+== What are the existing uses of templates in the code? ==
+
+{|
+!Template file
+!Usage location (File path)
+!align="right"|Description
+|-
+|etc_network_interfaces_d_file.erb
+|manifests/netconfig/interface.pp
+|align="right"|Defines network interfaces
+|-
+|collectd/threshold_name\_conf.erb | manifests/system/define\_metrics.pp | Defines template for CPU, log notifications, DF(Disk full) and Memory plugins. This plugin is about threshold warning and log.| |collectd/</math>{notification_type}_notifications.conf.erb
+|manifests/system/metrics.pp
+|align="right"|Notification type is log so far. It defines content for 20-notifications.conf for collectd service.
+|-
+|sensitive_services.erb
+|manifests/system/sensitive_services.pp
+|align="right"|-
+|-
+|local_settings.py.erb'
+|manifests/jiocloud/dashboard.ppi
+|align="right"|It defines local settings template for horizon and resultant output is python which is consumed by Django to generate the output in HTML.
+|-
+|cloudenv.erb
+|manifests/jiocloud/jenkins/cloudenv.pp
+|align="right"|It loads the environment variable defined in env_vars in the class.
+|-
+|cloudmap.erb
+|manifests/jiocloud/jenkins/cloudenv.pp
+|align="right"|It loads the YAML file defined in mapping variable in the class.
+|-
+|consul.service.erb
+|manifests/jiocloud/consul/service.pp
+|align="right"|It defines JSON file for consul services
+|-
+|consul-alerts.erb
+|manifests/jiocloud/consul/consul_alerts.pp
+|align="right"|It is script for Consul alerts
+|-
+|tests/neutron.sh.erb
+|manifests/test/neutron.pp
+|align="right"|It generate shell file for neutron services.
+|-
+|tests/nova_flavor.sh.erb
+|manifests/test/nova_flavor.pp
+|align="right"|It adds Nova flavour in the shell file as given in template.
+|-
+|tests/haproxy_openstack.sh.erb
+|manifests/test/haproxy_openstack.pp
+|align="right"|It defines shell file for haproxy.
+|-
+|tests/glance-api.sh.erb
+|manifests/test/glance.pp
+|align="right"|It generates shell file for glance-api.
+|-
+|tests/cinder-secret.sh.erb
+|manifests/test/compute/rbd.pp
+|align="right"|It generates shell for cinder secret.
+|-
+|tests/${type}_check.sh.erb
+|manifests/test/check.pp
+|align="right"|It generates test file for service checks.
+|-
+|tests/ceph_radosgw.sh.erb
+|manifests/test/ceph_radosgw.pp
+|align="right"|Shell file for ceph-radosgw
+|-
+|tests/contrail_vrouter.sh.erb
+|manifests/test/contrail_vrouter.pp
+|align="right"|Shell file for constrail vrouter
+|-
+|tests/contrail_vgw.sh.erb
+|manifests/test/contrail_vrouter.pp
+|align="right"|Shell file for constrail_vgw if vgw is enabled.
+|-
+|contrail-resolv.erb
+|manifests/contrail/vrouter.pp
+|align="right"|It adds entry of server to resolve
+|-
+|contrail-hosts.erb
+|manifests/contrail/vrouter.pp
+|align="right"|It adds DNS Entry for given host
+|-
+|glance_policy.erb
+|manifests/glance.pp
+|align="right"|It generates JSON file for glance policy.
+|-
+|upstart/cinder-volume.conf.erb
+|manifests/cinder.pp
+|align="right"|It is configuration file for cinder volume.
+|}
+

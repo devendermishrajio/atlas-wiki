@@ -1,0 +1,101 @@
+== Requirement ==
+
+* Connected to Reliance Jio VPN
+* User account must be admin (for Image Upload).
+
+== Image Upload ==
+
+To upload the image, download an ISO or harddisk image of the desired OS. Then use the following command:
+
+<pre>glance image-create --name &quot;Test image&quot; --is-public true --disk-format raw --container-format bare\
+  --file cirros-0.3.4-x86_64-disk.img</pre>
+
+For details about <code>glance image-create</code> command, see [http://docs.openstack.org/cli-reference/content/glanceclient_commands.html glance command] or use <code>glance image-create -h</code> command.
+
+== Boot from the above image ==
+
+Once, the image is uploaded using the above step, you can boot the machine with following command:
+
+<pre>nova boot --flavor &lt;Flavor id&gt; --block-device \
+source=image,id=&lt;image id&gt;,dest=volume,size=&lt;Size in GB &gt;,shutdown=preserve,bootindex=0 \
+ --nic net-id=&lt;Network Id&gt; &lt;Name&gt;</pre>
+
+where
+
+* Flavor Id: It mentions what flavor of the machine is required (small, medium, large etc.). To see the available flavor, use <code>nova flavor-list</code> command.
+* Image Id: It mentions what image should be used in this machine. To see the available images, use <code>nova image-list</code> or <code>glance image-list</code> commands.
+* Network Id: It mentions what network should the machine be connected. To see the available networks, use <code>neutron net-list</code> or <code>nova net-list</code> commands.
+* Name: Name of the machine to be created.
+
+Currently, machine is booted using volume on tenant, not using image.
+
+For more details about <code>nova boot</code> command, see [http://docs.openstack.org/cli-reference/content/novaclient_commands.html#novaclient_subcommand_boot nova command] or use <code>nova boot -h</code> command.
+
+== Tenant Creation ==
+
+A tenant in openstack is identified by a project. Each tenant can be have multiple users.
+
+To create a tenant or project, use
+
+<pre>openstack project create &lt;Project name&gt;</pre>
+where
+
+* Project name: It must be a unique name given to the project.
+
+Add user into project:
+
+<pre>openstack user create -project &lt;Project name &gt; &lt;User name&gt;</pre>
+where
+
+* Project name: Name of an existing tenant
+* User name: Name of the user. It must be unique.
+
+To remove the user, use the following command:
+
+<pre>openstack user delete &lt;User name&gt;</pre>
+To remove the tenant or project, use:
+
+<pre>openstack project delete &lt;User name &gt;</pre>
+For more details about <code>openstack project</code>, see [http://docs.openstack.org/openstack-ops/content/projects_users.html project] or <code>openstack help project</code>.
+
+== Quota (Compute) ==
+
+Quota is limit of the resource usage for a user inside a tenant. This limit includes:
+
+* instances: Instances of the machine
+* cores: CPU cores
+* RAM
+* Floating IPs
+* Fixed IPs
+* Metadata Items
+* Injected files
+* Injected file content bytes
+* injected file path bytes
+* key pairs
+* security groups
+* security group rules
+
+To get the list of current quota values, use the following command:
+
+<pre>nova quota-show --user &lt;User name &gt; --tenant &lt;Tenant Id&gt;</pre>
+If you do not mention tenant Id, it will show default quota.
+
+To update quota, use
+
+<code>nova quota-update --user &lt;User name&gt; &lt;quota name &gt; &lt; value&gt; &lt; tenant-id &gt;</code>
+Quota name can be:
+
+* <code>instances</code>
+* <code>cores</code>
+* <code>ram</code>
+* <code>floating_ips</code>
+* <code>metadata_items</code>
+* <code>injected_files</code>
+* <code>injected_file_content_bytes</code>
+* <code>injected_file_path_bytes</code>
+* <code>key_pairs</code>
+* <code>security_groups</code>
+* <code>security_group_rules</code>
+
+-1 means no limit.
+

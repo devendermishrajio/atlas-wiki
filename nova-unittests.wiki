@@ -1,0 +1,91 @@
+= Unit testing in nova =
+
+For any codebase, unit testing is very important. It ensures that each invidual constructs inside a module/sub-module are working as per the intention of the developer. When a construct or artifact depends on other module or constructs, then unit tests can make sure that dependent module is working fine or any change is required.
+
+Unit tests can help in refactoring the code also where it removes the fear of breaking any functionality by unit testing.
+
+<code>nova</code> module provides framework for testing. Framework resides inside nova/tests and nova/test.py by defining related classes and artifacts. <code>run_tests.sh</code> script is used to run the test case and additionally install the dependencies.
+
+== Steps to run unit test in nova. ==
+
+<ul>
+<li>fork nova from openstack/nova.</li>
+<li>clone nova.</li>
+<li><p>run run_tests.sh as shown below:</p>
+<pre>    ./run_tests.sh</pre></li></ul>
+
+The above script will install the dependencies required to run the test cases into .venv folder for first time use.
+
+To run a specific test case,
+
+<pre>      ./run_tests.sh &lt;test case name or pattern&gt;</pre>
+FOr given name, it does prefix matching. All the test cases with matching prefix will be run.
+
+== Conventions ==
+
+All the test cases reside in nova/tests. Filename is prefixed with test_.
+
+A test case in run_tests command is named as following:
+
+<pre>nova.tests.(path of the test cases with . as separator rather than /){.name of the test case}</pre>
+If name of the test case is mentioned, then the particular test case will run. Else, all the test cases in the path or file are referred.
+
+e.g. test cases at nova/tests/unit/virt/test_virt.py will be referred as
+
+<pre>nova.tests.unit.virt.test_virt</pre>
+A test case which is test_sample inside test_virt.py will be referred as
+
+<pre>nova.tests.unit.virt.test_virt.test_sample</pre>
+== Test cases ==
+
+In nova/tests, there are following test cases:
+
+* unit
+* functional
+
+Functional test has following category for the test cases :
+
+* api (test cases are inside api_sampel_tests)
+* db
+* libvirt
+* wsgi
+
+Unit test cases are structured for different sub-modules of nova inside <code>unit</code> directory.
+
+== How to change/add new test case? ==
+
+* Create a file with the convention mentioned above.
+* Make a class with <code>TestCase</code> class of <code>nova.test</code> module or its derivative as base class.
+* Test method inside the class should start with test_ name.
+
+<code>TestCase</code> class has many derivatives which defines many helper methods. Please refer nova/tests for more details.
+
+<code>TestCase</code> class by default uses database. If your test case does not use database, then derive from <code>NoDBTestCase</code> class.
+
+For example, I want to add the following simple test case:
+
+<pre>2 + 3 == 5</pre>
+For this test case, add the following file:
+
+* <code>nova/tests/test_dev1.py</code> : This file can be added into sub-folders inside nova/tests also.
+
+Add the following test case:
+
+<pre>    from nova import test
+    
+    class DevTest2(test.NoDBTestCase):
+      def test_method1(self):
+        a = 2
+        b = 3
+        return a+b == 5</pre>
+To run this test case:
+
+<pre>    ./run_tests.sh nova.tests.test_dev1</pre>
+or
+
+<pre>    ./run_tests.sh nova.tests.test_dev1.DevTest2</pre>
+or
+
+<pre>    ./run_tests.sh nova.tests.test_dev1.DevTest2.test_method    #It will match to test_method
+    ./run_tests.sh nova.tests.test_dev1.DevTest2.test           #It will match to test_method by prefix matching.</pre>
+

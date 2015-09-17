@@ -1,0 +1,163 @@
+= About Jenkins =
+
+Jenkin is a CI tool. It automates the task of testing new commit into the repository.
+
+== Installation ==
+
+For Ubuntu:
+
+<pre>    wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+    sudo sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ &gt; /etc/apt/sources.list.d/jenkins.list'
+    sudo apt-get update
+    sudo apt-get install jenkins</pre>
+To check for installation, check if folder /var/lib/jenkins and file /etc/init.d/jenkins exist.
+
+Install following plugins
+* GitHub API Plugin
+* GitHub Authentication Plugin (Sometimes referred to as Github OAuth Plugin)
+* GitHub plugin
+* Git plugin
+* Job Configuration History Plugin
+* Publish over SSH Plugin
+
+== Installation of plugins: ==
+
+To install plugins:
+* Go to Manage Jenkins -&gt; Manage Plugins. It will take to URL http://(jenkins-url)/pluginManager/
+* Choose the plugins and click on &quot;Download now and install after restart&quot;. Above steps will download the plugins and restart Jenkins.
+
+Or
+* Download the plugins from https://updates.jenkins-ci.org/download/plugins/
+* copy .hep files of plugin into ~/.jenkins/plugin.
+* Restart Jenkin
+
+To restart Jenkin:
+* <code>(jenkins_url)/safeRestart</code>: For safe restart. Running jobs will be complete. New jobs will remain in the queue to run after the restart.
+* <code>(jenkins_url)/restart</code>: Force restart.
+
+Check for installed plugins at http://(jenkins-url)/pluginManager/installed
+
+== Our Jenkins Job Builder and Jenkins Jobs ==
+
+=== Jenkins Job Builder ===
+
+Jenkin Job Builder builds Jenkin jobs from YAML or JSON files. YAML/JSON files are in human readable format and are easy to keep in version control.
+
+jenkins-job-builder project converts YAML/JSON into Jenkins project.
+
+Example:
+
+Job description in test.yaml:
+
+<pre>- job:
+    name: &quot;hw-job&quot;
+    project-type: freestyle
+    node: master
+    scm:
+      - git:
+          url: /home/devender/code/test-git
+          branches:
+            - master
+          wipe-workspace: false
+
+    triggers:
+      - pollscm: &quot;H/5 * * * *&quot;
+
+    builders:
+      - shell: |
+          #!/bin/bash -x
+          cd /home/devender/code/test-git
+          gcc test.c -o test.bin
+          ./test.bin
+
+
+    properties:
+      - github:
+          url: /home/devender/code/test-git
+
+    publishers:
+      - ircbot:
+          strategy: all
+          matrix-notifier: only-configurations</pre>
+Now add job using jenkins-job-builder as follows:
+
+<pre>jenkins-jobs update test.yaml </pre>
+You can build jenkins-job-builder from https://github.com/JioCloud/jenkins-job-builder or its forked repository.
+
+=== Jenkins Jobs ===
+
+jenkins-jobs project contains YAML/script files for Jenkin jobs for Jio Cloud.
+
+It has following files:
+
+'''Scripts'''
+
+{|
+!File
+!Description
+|-
+|apply.sh
+|It installs Jenkins Job Builder and updates all the jobs or test (if test option is provided).
+|-
+|deploy.sh
+|It calls build_scripts/deploy.sh.
+|-
+|teardown.sh
+|It deletes the project tag.
+|-
+|test.sh
+|It calls build_scripts/test.sh.
+|-
+|update.sh
+|It calls update on jiocloud.
+|}
+
+'''Jobs'''
+
+* '''infra.yaml''' : It defines infra-docs job.
+* '''jobs.yaml''' :
+** It defines different ''job template'':
+*** upstream
+*** jiocloud
+*** upstream-rebase-fix-testing
+*** jiocloud-rebase-fix-testing
+*** pkg
+** ''job groups'':
+*** upstream-project-nostable
+*** upstream-project-nostable-rebase-fix-testing
+*** upstream-project
+** ''projects:''
+*** nova
+*** python-novaclient
+*** glance
+*** python-glanceclient
+*** heat
+*** ceilometer
+*** horizon
+*** reg-service
+*** python-swiftclient
+*** keystone
+*** python-keystoneclient
+*** neutron
+*** python-neutronclient
+*** cinder
+*** python-cinderclient
+*** oslo-incubator
+*** basicdb
+** ''jobs'':
+*** contrail
+*** repoconf
+*** process-pkg
+*** jio-site
+*** puppet-jiocloud-cache
+*** puppet-jiocloud-pkg
+*** python-jiocloud-pkg
+*** reg-service-pkg.
+* '''mgmt.yaml''': It defines jobs-refresh job. This job is for management and refresh the jobs pushed into this repository.
+* '''pipeline.yaml''': It defines jobs:
+** pipeline-at-prepare
+** pipeline-at-deploy
+** pipeline-at-test
+** pipeline-at-promote
+** pipeline-at-teardown.
+

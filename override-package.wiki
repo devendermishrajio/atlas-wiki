@@ -1,0 +1,23 @@
+= Override packge =
+
+This script generates package into new_repo directory as new_repo.tgz and debian files.
+
+While installing package in a machine, new_repo directory is added as a source directory for package lookup with highest priority (so that package from other remote directories are not look-up). On running apt-get, it looks the package from the local directory and installs the required package.
+
+== Dependencies ==
+
+* repo, git
+* repoconf_repo_source, repoconf_source_branch, repo_dir variables which comes from Jenkins.
+* sync-repo.sh script: sync-repo.sh script is part of autobuild repository and is present inside autobuild/debian/sync-repo.sh.
+* sbuild package: It is used to (re)build debian package from sources.
+
+== Steps ==
+
+This script works only when repoconf_repo_source variable is defined. This and other related variables are defined from jenkin jobs.
+
+* It initialize the branch as defined repoconf_repo_source using repoconf_source_branch branch. Then branch is updated.
+* sync-repo.sh script is called generate the change log and source package.
+* sbuild is called to created the build.
+* deb file is copied into new_repo.
+* Create archives and compressed file into new_repo.
+

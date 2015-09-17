@@ -1,0 +1,315 @@
+= Consul =
+
+Consul is a tool for service discovery and maintenance. It provides following features:
+
+* Service Discovery: Using DNS or HTTP, application can discover services such as <code>mysql</code>.
+* Health Checking: Health of node, services can be checked and can be used to monitor the health.
+* Key/Value Store: Key value pair can be stored and used for different purposes like dynamic configuration, feature flagging.
+* Multiple Data-center: It means user does not have to worry about building additional layers of abstraction to grow to multiple regions.
+
+== Basic Architecture ==
+
+Consul is distributed, highly available system. Every node that provides services to Consul runs a ''Consul agent''. Running an agent is not required for discovering other services or getting/setting key/value data. Agent is responsible for health checking of the services on the node as well as the node itself.
+
+Agents talks to one or more ''Consul servers''. Consul servers are where data is stored and replicated.
+
+Server themselves elect a leader.
+
+Components of the infrastructure that need to discover other services or nodes can query any of the Consul servers or Consul agents. Agent forward queries to the servers automatically.
+
+Each data-center runs a cluster of Consul servers. When a cross-data-center service discovery or configuration request is made, the local Consul servers forward th request to the remote data-center and return the result.
+
+Consul can function with one server but is discouraged as it will lead to data loss.
+
+== Installing Consul ==
+
+* Download package from https://consul.io/downloads.html
+* Unzip the zip file and add consul to the PATH variable.
+
+== Run the agent ==
+
+Agent can run either in server or client mode. There must be at least one server. Cluster of 3 or 5 server is recommended. Single server deployment is highly discouraged as data loss is inevitable in a failure scenario.
+
+To start the server :
+
+<pre>    consul agent -server -bootstrap-expect &lt;number of servers&gt; -data-dir /tmp/consul -config-dir /etc/consul.d</pre>
+To start the agent as client, do not specify <code>-server</code> and <code>-bootstrap-expect</code> parameters.
+
+In the above cases, if there are multiple interfaces, use option <code>-bind</code> to specify the IP address to be bound.
+
+After starting the server or agent, it is necessary to join the consul. Only joining one node is required. After joining, nodes will gossip each other to propagate the information. To join the consul,
+
+<pre>    consul join &lt;node address&gt;</pre>
+In your configuration, make sure that all the node should join the same consul cluster. To ensure that, just make sure that there are no isolated nodes in the graph of initial consul.
+
+For example, below consul of 5 nodes will give two cluster rather one:
+
+<pre>A# consul join B
+C# consul join E
+D# consul join A</pre>
+C and E are in different cluster from A,B and D.
+
+One easiest solution is that all node should join one node. But it will fail if that node fails. Hence, in joining sequence, make sure that you form a connected graph.
+
+== Server discovery (members) ==
+
+Service discovery involves:
+
+* Discovery of members
+* Discovery of services
+
+Members can be discovered using:
+
+* Using <code>consul member</code> command
+* Using HTTP API
+* Using DNS query
+
+Services can be discovered using:
+
+* Using DNS query
+* Using HTTP API
+
+=== Using HTTP API ===
+
+To discover services, use
+
+* <code>curl http://localhost:8500/v1/catalog/services</code>: It will list all the services
+* <code>curl http://localhost:8500/v1/catalog/service/&lt;service&gt;</code>: It will list the specified service.
+
+To discover nodes, use
+
+* <code>curl http://localhost:8500/v1/catalog/nodes</code>: It will list all the nodes.
+* <code>curl http://localhost:8500/v1/catalog/node/&lt;node&gt;</code>: It will list the specified node.
+
+Response of HTTP API will be in JSON format.
+
+=== Whether use HTTP API or DNS? ===
+
+Following points are to be considered:
+
+* DNS APIs use UDP as transport protocol which is not reliable. Sometimes, it may not give response. However, it is fast.
+* HTTP APIs use TCP as transport protocol which is reliable but slow.
+
+If reliability is important, use HTTP. For speed, DNS APIs can be used.
+
+DNS performance can be further improved by using DNS caching.
+
+== Service Registry ==
+
+Service can be defined in a configuration file or added at runtime using HTTP APIs.
+
+Service definition looks like:
+
+<pre>    {
+      &quot;service&quot;: {
+        &quot;name&quot;: &quot;redis&quot;,
+        &quot;tags&quot;: [&quot;master&quot;],
+        &quot;address&quot;: &quot;127.0.0.1&quot;,
+        &quot;port&quot;: 8000,
+        &quot;checks&quot;: [
+          {
+            &quot;script&quot;: &quot;/usr/local/bin/check_redis.py&quot;,
+            &quot;interval&quot;: &quot;10s&quot;
+          }
+        ]
+      }
+    }</pre>
+Service definition must include a <code>name</code>, optionally an <code>id</code>, <code>tags</code>, <code>address</code>, <code>port</code> and <code>check</code>.
+
+This definition must be defined in a json file and present inside configuration directory or file.
+
+Multiple services can be defined as <code>services</code> in an array.
+
+<pre>    {
+      &quot;services&quot;: [
+          {
+            &lt;service definition-1&gt;
+          }
+          {
+            &lt;service definition-2&gt;
+          }
+          ... 
+          {
+            &lt;service definition-n&gt;
+          }
+        ]
+    }</pre>
+=== Add Services ===
+
+==== Using configuration file ====
+
+* Add service by service definition in a JSON file.
+* Put inside configuration directory (/etc/consul.d)
+* Send <code>SIGHUP</code> signal to consul or restart consul and join the cluster.
+
+==== Using HTTP API ====
+
+* HTTP API <code>curl http://localhost:8500/v1/agent/service/register -T myservice.json</code>
+
+Where json file contains service definition.
+
+== Checks ==
+
+There are two types of checks:
+
+* System-level: Check monitors the health of the entire node.
+* Application-level: It is associated with a service
+
+Check can be defined in a configuration file or added at runtime over the HTTP APIs. Checks created via the HTTP interface persist with that node.
+
+3 Kinds of checks:
+
+* Script + Interval: These checks depend on invoking an external application that performs the health check, exits with an appropriate exit code and generates some output. Script is invoked at the specified interval.
+* HTTP + Interval: It makes an GET request every interval. 2xx code is considered passing. 429 is warning. Anything else is failure. These checks by default configured with timeout of 10s.
+* TTL: These checks retain their last known state for a given TTL. If an external system fails to update the status within a given TTL, the check is set to the failed state.
+
+For check definition, see [[Check%20definitions|https://consul.io/docs/agent/checks.html]].
+
+A Script check:
+
+<pre>    {
+      &quot;check&quot;: {
+        &quot;id&quot;: &quot;mem-util&quot;,
+        &quot;name&quot;: &quot;Memory utilization&quot;,
+        &quot;script&quot;: &quot;/usr/local/bin/check_mem.py&quot;,
+        &quot;interval&quot;: &quot;10s&quot;
+      }
+    }</pre>
+An HTTP Check:
+
+<pre>    {
+      &quot;check&quot;: {
+        &quot;id&quot;: &quot;api&quot;,
+        &quot;name&quot;: &quot;HTTP API on port 5000&quot;,
+        &quot;http&quot;: &quot;http://localhost:5000/health&quot;,
+        &quot;interval&quot;: &quot;10s&quot;,
+        &quot;timeout&quot;: &quot;1s&quot;
+      }
+    }</pre>
+A TTL Check:
+
+<pre>    {
+      &quot;check&quot;: {
+        &quot;id&quot;: &quot;web-app&quot;,
+        &quot;name&quot;: &quot;Web App Status&quot;,
+        &quot;notes&quot;: &quot;Web app does a curl internally every 10 seconds&quot;,
+        &quot;ttl&quot;: &quot;30s&quot;
+      }
+    }</pre>
+Checks are provided into configuration file or placed inside json file on configuration directory.
+
+=== Check scripts ===
+
+Check scripts do the specified tasks to determine the status of the check. They must be following convention on exit codes.
+
+* 0 : Passing check
+* 1 : Warning check
+* else: Failing check
+
+=== Service-bound checks ===
+
+Health Checks can be bound to a service. This check affects the health status of the service only. Such checks include <code>service_id</code> filed in the check configuration.
+
+=== Multiple checks ===
+
+Multiple checks can be added into <code>checks</code> as an array.
+
+<pre>    {
+      &quot;checks&quot;: [
+        {
+          &lt;check definition-1&gt;
+        }
+        {
+          &lt;check definition-2&gt;
+        }
+        ...
+        {
+          &lt;check definition-n&gt;
+        }
+      ]
+    }</pre>
+=== Health check APIs ===
+
+HTTP APIs:
+
+<ul>
+<li><p>For health</p>
+<pre>http://localhost:8500/v1/health/</pre></li>
+<li><p>To check health of a node, use</p>
+<pre>http://localhost:8500/v1/health/node/&lt;node name&gt;</pre></li>
+<li><p>To check health of a service, use</p>
+<pre>http://localhost:8500/v1/health/checks/&lt;service name&gt;</pre></li>
+<li><p>To check node and health info of a service, use</p>
+<pre>http://localhost:8500/v1/health/service/&lt;service name&gt;</pre></li>
+<li><p>To get the list of services in given state, use</p>
+<pre>http://localhost:8500/v1/health/state/&lt;state&gt;</pre></li></ul>
+
+== DNS Resolution ==
+
+DNS is one of the primary query interface for Consul. DNS mechanism allows service discovery without any significant integration effort.
+
+By default, Consul listen on 127.0.0.1:8600 for DNS queries in the &quot;consul.&quot; domain without support for further DNS recursion (it means if query fails, it will not forward query to other server to get the response).
+
+<code>dig</code> command can be used to discover node and services.
+
+Caching is by default disabled.
+
+=== Node Lookups ===
+
+Consul relies on a very specific format for queries. Node are named as below:
+
+&lt;node&gt;.node.&lt;datacenter&gt;.&lt;domain&gt;
+
+By default <code>domain</code> is <code>consul</code>
+
+It will return IP.
+
+e.g.
+
+<pre>    dig @127.0.0.1 -p 8600 agent-one.node.dc1.consul</pre>
+=== Service Lookups ===
+
+It is used to query for service providers. Service queries support two lookup methods: Standard and strict RFC 2782,
+
+==== Standard Lookup ====
+
+Format of standard lookup:
+
+[tag.]&lt;service&gt;.service[.datacenter][.domain]
+
+e.g.
+
+<pre>    dig @127.0.0.1 -p 8600 mail.service.consul</pre>
+==== Strict Lookup ====
+
+Format of strict lookup:
+
+_&lt;service&gt;._&lt;protocol&gt;.service[.datacenter][.domain]
+
+= Appendix =
+
+=== Some common endpoints ===
+
+<ul>
+<li><p>Agent endpoint: To interact with local Consul agent.</p>
+<p>/v1/agent/</p></li></ul>
+
+To list all the services, user
+
+<pre>/v1/agent/services</pre>
+* Catalog endpoint: To register and deregister nodes, services and checks.
+
+=== Consul ports ===
+
+Services and default ports - <code>dns</code>: 8600 - <code>http</code>: 8500 - <code>https</code>: Disabled (-1) - <code>rpc</code>: 8400 - <code>serf_lan</code>: 8301 - <code>serf_wan</code>: 8302 - <code>server</code>: 8300
+
+=== Execute the command across the nodes ===
+
+<code>consul exec</code> command can be used to execute a command across all/selected the consul nodes.
+
+== Some important links ==
+
+* [[Consul%20commands|https://consul.io/docs/commands/index.html]]
+* [[Consul%20getting%20started%20tutorial|https://consul.io/intro/getting-started/install.html]]
+* [[Raft%20illustration|http://thesecretlivesofdata.com/raft/]]
+
