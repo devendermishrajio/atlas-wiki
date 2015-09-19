@@ -1,0 +1,41 @@
+==Consul DNS==
+[[Consul#DNS_Resolution| How]] consul dns works
+
+==DNSmasq==
+This service runs on every node. This gives us the freedom to add the consul DNS for every service and application running on the machine without explicitly modifying each one of their code.
+===Installing DNSmasq===
+Use <code>apt-get install dnsmasq</code> to install dnsmasq.
+===Configure DNSmasq to use consul DNS===
+Edit <code>/etc/dnsmasq.d/10-consul</code> and enter the value <code>server=/consul/127.0.0.1#8600</code>.All we're doing here is specifying that DNS requests for consul services are to be dealt with by the DNS server at 127.0.0.1 on port 8600. Unless you've changed the consul defaults this should work.
+===resolv.conf===
+update the /etc/resolv.conf with values 
+
+ <nowiki>nameserver 127.0.0.1
+search node.consul service.consul</nowiki> 
+
+and restart
+
+==Architecture on Production==
+===Consul===
+Three consul servers: bootstrap1-production, oc1-production, ocdb1-production. All others are in client configuration.
+===Configurations of server===
+====Bootstrap1-production====
+This is the first node to come up in server configuration. The "bootstrap_expect":1 value provided during the consul start enables it to elect itself as leader. The (rjil-)puppet code then registers itself to a public DNS (currently http://consuldiscovery.linux2go.dk/) under a subdomain.
+====oc1-production====
+This node is another consul server with start configurations as
+ <nowiki>"start_join":["<dc>.service.consuldiscovery.linux2go.dk"]</nowiki>
+Consider here the start_join paramater. This address resolves to the bind address of bootstrap node. And the consul server joins the existing cluster.
+====ocdb1-production====
+The behavior of consul is identical to that of oc1-production node.
+
+===Consul DNS===
+Every node has dnsmasq which syncs with consul dns. The gcp node has one additional [http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html | configuration].
+ <nowiki>--listen-address=<ipaddr> Listen on the given IP address(es). 
+Both --interface and --listen-address options may be given, in which case the set of both interfaces and addresses is used. 
+Note that if no --interface option is given, but --listen-address is, dnsmasq will not automatically listen on the loopback interface. 
+To achieve this, its IP address, 127.0.0.1, must be explicitly given as a --listen-address option.</nowiki>
+And the value is set to <code>127.0.0.1</code>. This configures to use dnsmasq for the local system only.
+
+===flow of address resolution request===
+Address with <code>.consul.</code> is resolved at local dnsmasq service with help of consul DNS. Any public address request goes to gcp which further relies on public DNS to resolve the address.
+
