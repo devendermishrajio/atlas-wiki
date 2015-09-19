@@ -1,0 +1,43 @@
+= Consul Alerts =
+
+Consul alert is a simple daemon which observes change in the consul and send the alert notifications to the user(s).
+
+Notification can be obtained in the following forms:
+
+* Log
+* Email
+* InfluxDB
+* Slack
+* PagerDuty
+* HipChat
+
+Any change in the health of services or node will be notified on the configured channel.
+
+It is easy to configure from Key Value store.
+
+== How to setup Consul alerts? ==
+
+=== Installing consul alerts ===
+
+Consul alerts can be downloaded from its [https://github.com/AcalephStorage/consul-alerts github repository] and then build it from the source. In this way, any modification in the code can be made if required. Or its binary can be downloaded from the sources mentioned in the README.md and used.
+
+Once <code>consul-alerts</code> is downloaded or build, install it to <code>PATH</code> variable.
+
+=== Configure consul-alerts ===
+
+Consul alerts can be configured using key value of consul. For different notification alerts, there are different key-values which needs to be configured. Once, key-values are configured, run <code>consul-alerts</code> application as a daemon in the background. Now, any changes in health will be notified.
+
+Below example scipt will configure it for slack notification to notifiy on <code>#test-slack</code> channel.
+
+<pre>    curl -X PUT -d "true" http://127.0.0.1:8500/v1/kv/consul-alerts/config/notifiers/slack/enabled
+    curl -X PUT -d "Consul Devender and Punit Alert" http://127.0.0.1:8500/v1/kv/consul-alerts/config/notifiers/slack/cluster-name
+    curl -X PUT -d "https://hooks.slack.com/services/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" http://127.0.0.1:8500/v1/kv/consul-alerts/config/notifiers/slack/url
+    curl -X PUT -d "#test-slack" http://127.0.0.1:8500/v1/kv/consul-alerts/config/notifiers/slack/channel</pre>
+The above script sets the key-value pair to the appropriate values to send the notification on slack.
+
+To see more on configuration, refer to [https://github.com/AcalephStorage/consul-alerts/blob/master/README.md README] It also explains how to blacklist some health checks etc.
+
+== Custom Changes ==
+
+Most of the requirements are fulfilled by configuration. If further changes are required like new kind of notifier, then changes can be made into the code as it is an open source project. It can be forked and pull requests can be created.
+
