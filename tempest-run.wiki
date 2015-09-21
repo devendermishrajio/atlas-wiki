@@ -1,0 +1,39 @@
+= Tempest =
+
+Tempest module contains set of integration tests which must be run against OpenStack cluster. These tests are for OpenStack API validation, Scenarios and other specific test cases.
+
+It tests public interfaces which are API or libraries. It does not touch private or implementation specific interfaces.
+
+== Start ==
+
+To run tempest:
+
+* Install the appropriate tempest using <code>pip install tempest</code> or clone and install.
+* Setup local working tempest dir using
+** <code>tempest init dir-01</code>
+** <code>mkdir dir-01 && cd dir-01 && tempest init</code>
+* Make any required change in configuration file (<code>etc/tempest.conf</code>).
+* Run Tempest using <code>testr</code> or any <code>testr</code> based runner.
+
+=== Run All the test cases ===
+
+Use command
+
+<pre>testr run --parallel</pre>
+=== Run specific test cases ===
+
+Specify test case into run command. Test case has convention of python modules from tempest directory where /s are replaced by period(.).
+
+For example, following test case:
+
+<code>test_reboot_non_existent_server</code> method (test case) inside <code>ServersNegativeTestJSON</code> class in tempest/api/compute/servers/test_servers_negative.py file will be named as shown below:
+
+<pre>    tempest.api.compute.servers.test_servers_negative.ServersNegativeTestJSON.test_reboot_non_existent_server</pre>
+To run the above specific test case, run
+
+<pre>    testr run tempest.api.compute.servers.test_servers_negative.ServersNegativeTestJSON.test_reboot_non_existent_server</pre>
+== TODO ==
+
+* To find out how to add a new test cases into tempest.
+** Guidelines for those test cases.
+
