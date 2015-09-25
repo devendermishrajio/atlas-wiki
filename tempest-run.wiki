@@ -65,7 +65,7 @@ Rest of folders are helpers (some common code abstracted out into python module 
 
 <code>test_discover</code> module runs the test cases of <code>api</code>, <code>scenario</code> and <code>thirdparty</code> by discovering the test cases into the sub-folders.
 
-<code>api</code>, <code>scenario</code> and <code>thirdparty</code> test cases are further organized into their folder. <code>api</code> is organized as the Openstack components (like <code>compute</code>, <code>network</code> etc.
+<code>api</code>, <code>scenario</code> and <code>thirdparty</code> test cases are further organized into their folder. <code>api</code> is organized as the Openstack components like <code>compute</code>, <code>network</code> etc.
 
 ==== Framework of test cases ====
 
