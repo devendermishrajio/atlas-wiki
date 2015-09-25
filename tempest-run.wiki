@@ -51,7 +51,6 @@ To run the above specific test case, run
 or
 
 <pre>    ./run_tempest.sh -- tempest.api.compute.servers.test_servers_negative.ServersNegativeTestJSON.test_reboot_non_existent_server </pre>
-
 == Structure of tempest test cases ==
 
 === Tempest test cases ===
@@ -60,22 +59,27 @@ Test cases are arranged inside <code>tempest</code> directory. It has following 
 
 * api
 * scenario
-* third_party
-* test_discover
+* thirdparty
 
 Rest of folders are helpers (some common code abstracted out into python module for sharing of the code).
 
-<code>test_discover</code> test case is compulsory as it actually runs the test cases of <code>api</code>, <code>scenario</code> and <code>third_party</code> by discovering the test cases into the sub-folders.
+<code>test_discover</code> module runs the test cases of <code>api</code>, <code>scenario</code> and <code>thirdparty</code> by discovering the test cases into the sub-folders.
 
-<code>api</code>, <code>scenario</code> and <code>third_party</code> test cases are further organized into their folder. <code>api</code> is organized as the Openstack components (like <code>compute</code>, <code>network</code> etc.
+<code>api</code>, <code>scenario</code> and <code>thirdparty</code> test cases are further organized into their folder. <code>api</code> is organized as the Openstack components (like <code>compute</code>, <code>network</code> etc.
 
 ==== Framework of test cases ====
 
 <code>test.py</code> file presents a framework for testing. It defines class <code>BaseTestCase</code> which represents a test-suite. It provides common template method like setup and teardown. Implementation steps are defined as method which sub-classes can override.
 
-Each python folder inside test case folder which is prefixed by <code>test_</code> represent a test suite. Inside the test suite, all the test cases are defined by prefix <code>test_</code>. Test suite class must inherit <code>BaseTestCase</code> to run under this framework.
+Each python module inside test case folder which is prefixed by <code>test_</code> represent a test suite. Inside the test suite, all the test cases are defined by prefix <code>test_</code>. Test suite class must inherit <code>BaseTestCase</code> to run under this framework.
 
-Each folder is a collection of test cases organized into a folder structure.
+Inside <code>api</code>, each sub-folder such as <code>compute</code> further defines its own testsuite which is derived from <code>BaseTestCase</code>. For example, <code>tempest/api/compute</code> has <code>BaseComputeTest</code> defined in <code>tempest/api/compute/base.py</code> module.
+
+For example, module <code>tempest/api/compute/servers/test_servers_negative.py</code> is a testsuite. It contains <code>ServersNegativeTestJSON</code> class which is derived from <code>BaseComputeTest</code> which is in-turn derived from <code>BaseTestCase</code>.
+
+Each folder/file inside <code>api</code>, <code>scenario</code> and <code>thirdparty</code> is a collection of testsuites.
+
+===== Add/Edit a test case =====
 
 To add test cases inside these folders: - To add a new folder, make sure to add <code>__init__.py</code> blank file. Otherwise, it would not be discovered by <code>test_discover</code> test case. Adding <code>__init__.py</code> make a folder importable by <code>testr</code>. - To add a new file, prefix it with <code>test_</code>. - To add a new class (testsuite), derive it from <code>BaseTestCase</code> or sub-class(es) of <code>BaseTestCase</code>. - To add a new method to test, prefix it with <code>test_</code>. Implement/modify it.
 
