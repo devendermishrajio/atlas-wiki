@@ -51,10 +51,6 @@ To run the above specific test case, run
 or
 
 <pre>    ./run_tempest.sh -- tempest.api.compute.servers.test_servers_negative.ServersNegativeTestJSON.test_reboot_non_existent_server </pre>
-== TODO ==
-
-* To find out how to add a new test cases into tempest.
-** Guidelines for those test cases.
 
 == Structure of tempest test cases ==
 
