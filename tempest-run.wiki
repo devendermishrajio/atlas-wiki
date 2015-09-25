@@ -9,17 +9,33 @@ It tests public interfaces which are API or libraries. It does not touch private
 To run tempest:
 
 * Install the appropriate tempest using <code>pip install tempest</code> or clone and install.
+** Install using <code>apt-get install tempest</code>.
+** Fork the source from <code>openstack</code> and make the appropriate changes and install the dependencies and make tempest.conf file. This is recommended for our setup. It will allow to make the changes into the test cases if required and configure tempest.conf file.
+*** To install dependencies, use <code>pip install -r requirements.txt</code> command.
+*** In tempest.conf, following changes are required minimally to run the tempest.
+**** keystone credentials (tenant, user and password and admin credentials for admin test cases)
+**** Image
+**** Flavor
+**** API endpoints
+**** <code>boot_from_volume_only</code> as in our scenario only boot from volume is allowed.
 * Setup local working tempest dir using
 ** <code>tempest init dir-01</code>
-** <code>mkdir dir-01 && cd dir-01 && tempest init</code>
+** <code>mkdir dir-01 &amp;&amp; cd dir-01 &amp;&amp; tempest init</code>
 * Make any required change in configuration file (<code>etc/tempest.conf</code>).
-* Run Tempest using <code>testr</code> or any <code>testr</code> based runner.
+* Run Tempest using
+** <code>testr</code> or any <code>testr</code> based runner
+** using <code>run_tempest.sh</code> script inside the repository. This script runs tempest using <code>testr</code>, but provides more control.
 
 === Run All the test cases ===
 
 Use command
 
 <pre>testr run --parallel</pre>
+or
+
+<pre>./run_tempest.sh</pre>
+or using tox (it is not covered in this document).
+
 === Run specific test cases ===
 
 Specify test case into run command. Test case has convention of python modules from tempest directory where /s are replaced by period(.).
@@ -32,8 +48,48 @@ For example, following test case:
 To run the above specific test case, run
 
 <pre>    testr run tempest.api.compute.servers.test_servers_negative.ServersNegativeTestJSON.test_reboot_non_existent_server</pre>
+or
+
+<pre>    ./run_tempest.sh -- tempest.api.compute.servers.test_servers_negative.ServersNegativeTestJSON.test_reboot_non_existent_server </pre>
 == TODO ==
 
 * To find out how to add a new test cases into tempest.
 ** Guidelines for those test cases.
+
+== Structure of tempest test cases ==
+
+=== Tempest test cases ===
+
+Test cases are arranged inside <code>tempest</code> directory. It has following groups of test cases:
+
+* api
+* scenario
+* third_party
+* test_discover
+
+Rest of folders are helpers (some common code abstracted out into python module for sharing of the code).
+
+<code>test_discover</code> test case is compulsory as it actually runs the test cases of <code>api</code>, <code>scenario</code> and <code>third_party</code> by discovering the test cases into the sub-folders.
+
+<code>api</code>, <code>scenario</code> and <code>third_party</code> test cases are further organized into their folder. <code>api</code> is organized as the Openstack components (like <code>compute</code>, <code>network</code> etc.
+
+==== Framework of test cases ====
+
+<code>test.py</code> file presents a framework for testing. It defines class <code>BaseTestCase</code> which represents a test-suite. It provides common template method like setup and teardown. Implementation steps are defined as method which sub-classes can override.
+
+Each python folder inside test case folder which is prefixed by <code>test_</code> represent a test suite. Inside the test suite, all the test cases are defined by prefix <code>test_</code>. Test suite class must inherit <code>BaseTestCase</code> to run under this framework.
+
+Each folder is a collection of test cases organized into a folder structure.
+
+To add test cases inside these folders: - To add a new folder, make sure to add <code>__init__.py</code> blank file. Otherwise, it would not be discovered by <code>test_discover</code> test case. Adding <code>__init__.py</code> make a folder importable by <code>testr</code>. - To add a new file, prefix it with <code>test_</code>. - To add a new class (testsuite), derive it from <code>BaseTestCase</code> or sub-class(es) of <code>BaseTestCase</code>. - To add a new method to test, prefix it with <code>test_</code>. Implement/modify it.
+
+In rare case, if you need to add a folder apart from <code>api</code>, <code>scenario</code>, <code>third_party</code> and <code>test_discover</code>, add folder by adding <code>__init__.py</code>. And also make an entry into <code>test_discover/test_discover.py</code> at the following code snippet:
+
+<pre>    for test_dir in ['tempest/api', 'tempest/scenario',
+                     'tempest/thirdparty']:</pre>
+==== tempest/common ====
+
+It is a sub-module which contains common methods and helpers which is independent of test cases and are needed by test cases to run them. <code>openstack/tempest-lib</code> is a dependency of <code>tempest</code>. This library contains helpers to create integration/functional test cases.
+
+So, developer writing test cases can look here for common helpers required.
 
