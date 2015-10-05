@@ -1,0 +1,115 @@
+= Nova and Glance packaging =
+
+Nova and glance modules are owned by compute team. Please refer to [[RepoList|Packages and Repositories]].
+
+== Github code ==
+
+Following github repo falls under our purview for packaging:
+
+* nova
+* python-novaclient
+* glance
+* python-glanceclient
+
+For nova, except python-novaclient, other packages are built by nova repository. For glance, except python-glanceclient, other packages are built by glance repository.
+
+== Ubuntu Packaging ==
+
+Ubuntu packaging involves building debian package (.deb package) from the source code or binary dependencies present in the library.
+
+=== Requirements ===
+
+* build tools (<code>build-essential</code> package)
+* Packages listed in the <code>Build-Depends</code> field in <code>debian/control</code> file.
+* <code>debian</code> folder and the following files under <code>debian</code> folder
+** <code>control</code>: It defines what will be packages, architecture, their dependencies, description, maintainer.
+** <code>rules</code>: It defines/overrides the rules to build the package.
+** <code>patches</code>: It has patches applied to the given build
+** <code>compat</code>: It mentions compatibility number. Currently it is a magic string of <code>9</code>.
+** <code>copyright</code>: It contains copyright information of files.
+** <code>changelog</code>: It contains log what is change/new in the builds.
+** <code>*.dirs</code>: For a given package, it is named by package. It mentions the dependent directory which must be created before building the package.
+
+<code>control</code>, <code>rules</code>, <code>copyright</code> and <code>compat</code> are core files inside <code>debian</code> folder and required for packaging. There are other files which are needed as per the packaging requirement.
+
+For more details, see [https://www.debian.org/doc/manuals/maint-guide/dother.en.html Other files]
+
+=== Steps ===
+
+<ul>
+<li>Download source tarball and name it as <code>&lt;package-name-version&gt;.orig.tar.gz</code>.</li>
+<li>Make sure <code>debian</code> folder and required files are present.</li>
+<li><p>Update the changelog with new version using <code>debchange</code> or <code>dch</code> (its alias) command.</p>
+dch -D stable -v $VERSION &quot;Build from custom git repo&quot; --force-distribution #force-distritbution for unofficial releases</li>
+<li><p>Install the required dependencies of packages using <code>apt-get</code> and <code>mk-build-deps</code>. <code>mk-build-deps</code> build dependencies from the <code>debian/control</code> file.</p>
+sudo echo &quot;deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/kilo main&quot; |sudo tee -a /etc/apt/sources.list.d/cloudarchive-kilo.list sudo apt-get update #Above steps are required for kilo build as it will install dependencies of kilo sudo mk-build-deps -ir debian/control -t 'sudo apt-get --force-yes -y'</li>
+<li>Make the build using <code>debuild</code></li>
+<li>Export package lists into <code>Package</code> file.</li>
+<li>Once .deb files are generated successfully generated, next step is to make them available for installation. It can be done by following ways:
+<ul>
+<li>For local systems, one can update <code>/etc/apt/source.list</code> with local debian repository. And copy your deb files to the local repository and update <code>Package</code> files by appending your package.</li>
+<li>There might be a server hosting packages and it must be providing some ways to upload the package. Upload your package. Once your package is in the repository, run <code>sudo apt-get update</code> and then you can install the package. To ensure that package comes from your build, run <code>apt-cache policy &lt;package name&gt;</code> to check if the candidate is your package.</li></ul>
+</li></ul>
+
+For local repository or your own repository, there is directory structure which needs to be followed. See [https://wiki.debian.org/RepositoryFormat repository format] for more details.
+
+Following code template can be used for build:
+
+<pre>echo &quot;moving dist/${SOURCEDIR}.tar.gz to $TARBALL&quot;
+mv dist/${SOURCEDIR}.tar.gz ../$TARBALL
+cd ..
+tar -xf $TARBALL
+
+VERSION=&quot;99:${MAJORVER}-${UBUNTUVER}-`date +%Y%m%d`&quot;
+
+dch -D stable -v $VERSION &quot;Build from custom git repo&quot;  --force-distribution
+#Below install and update are for kilo packages where it update the sources for their dependencies.
+sudo apt-get install -y ubuntu-cloud-keyring
+sudo echo &quot;deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/kilo main&quot; |sudo tee -a /etc/apt/sources.list.d/cloudarchive-kilo.list
+sudo apt-get update
+#It build the dependencies mentioned in control file.
+sudo mk-build-deps -ir debian/control -t  'sudo apt-get --force-yes -y'
+#Build the pakcage. -us -uc means do not sign the change file
+debuild -us -uc
+#Export package list
+sudo bash -c 'dpkg-scanpackages . &gt; Packages'
+#Put packages into tar.gz file.
+sudo tar czf nova-rjil.tgz *.deb Packages</pre>
+On
+
+== Python Packaging ==
+
+Python packaging can be done into two ways: - pypi packaging which allows one to use <code>pip install</code> type of installation - Python debian packaging which creates deb package for the python code.
+
+pypi type packaging is not covered here.
+
+In Debian packaging of python code, major step is involved in creating source tarball and debian directory structure. Rest of the steps are same as of debian packaging.
+
+In python codebases, <code>setuptools</code> are used to package, install and test a python module/application. <code>setuptools</code> uses <code>setup.py</code> for getting information related to the source code. Writing <code>setup.py</code> is the responsibility of package developer.
+
+Debian packaging has following steps:
+
+* <code>setup.py</code> to create debian folder if it does not exist.
+* Make the required changes into debian/* files.
+* Follow the debian packaging steps to create debian packages.
+
+To create debian folder, use the following command
+
+<ul>
+<li><p>Creating source tarball:</p>
+<p>python <code>setup.py</code> --command-packages=stdeb.command debianize</p></li></ul>
+
+It will create debian/* files. After that, developer needs to modify the files such as control, compat.
+
+== Nova Packaging ==
+
+In nova, there are two repository: <code>nova</code> and <code>novaautobuild</code>. <code>novaautobuild</code> contains debian folder and required files such as <code>control</code>. In the packaging step, debian folder is being copied to the source directory and than debian build is called.
+
+== Glance Packaging ==
+
+In glance packaging, debian folders are inside <code>pkg_kilo</code> branch. After switching to the branch, run the steps of debian packaging to build the package.
+
+== References ==
+
+* [https://wiki.debian.org/RepositoryFormat Repository format]
+
