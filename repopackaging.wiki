@@ -75,15 +75,18 @@ debuild -us -uc
 sudo bash -c 'dpkg-scanpackages . &gt; Packages'
 #Put packages into tar.gz file.
 sudo tar czf nova-rjil.tgz *.deb Packages</pre>
-On
+Once, deb files are generated, they are to be put in the repository so that the user can install them.
 
 == Python Packaging ==
 
-Python packaging can be done into two ways: - pypi packaging which allows one to use <code>pip install</code> type of installation - Python debian packaging which creates deb package for the python code.
+Python packaging can be done into two ways:
 
-pypi type packaging is not covered here.
+* pypi packaging which allows one to use <code>pip install</code> type of installation
+* Python debian packaging which creates deb package for the python code.
 
-In Debian packaging of python code, major step is involved in creating source tarball and debian directory structure. Rest of the steps are same as of debian packaging.
+<code>pypi</code> type packaging is not covered here.
+
+In Debian packaging of python code, major step is involved in creating source tarball and debian directory structure. Rest of the steps are similar to debian packaging.
 
 In python codebases, <code>setuptools</code> are used to package, install and test a python module/application. <code>setuptools</code> uses <code>setup.py</code> for getting information related to the source code. Writing <code>setup.py</code> is the responsibility of package developer.
 
@@ -97,9 +100,21 @@ To create debian folder, use the following command
 
 <ul>
 <li><p>Creating source tarball:</p>
-<p>python <code>setup.py</code> --command-packages=stdeb.command debianize</p></li></ul>
+<pre>python `setup.py` --command-packages=stdeb.command debianize</pre></li></ul>
 
 It will create debian/* files. After that, developer needs to modify the files such as control, compat.
+
+== How to maintain debian folder into VCS ==
+
+There are many ways to maintain <code>debian</code> folder inside VCS (like git) for tracking and maintenance. Two are discussed below:
+
+=== Put debian into separate repository ===
+
+Here, the point is to keep packaging separate from the development activity. debian folder is kept into a separate repository. Job of packaging is to pull the both repository (and make sure that the branches are same) and then copy the debian folder into source and run the packaging. One of the disadvantage is that in the development flow, check for packaging sanity is cumbersome. It is difficult to integrate with continuous integratoin tool.
+
+=== Put debian into same repository ===
+
+Here, debian is put into the same repository. In this approach, packaging script can be provided (like makefile) which will does the packaging in the same code base. In this approach, Continous integration check can enforced to ensure the sanity of packaging.
 
 == Nova Packaging ==
 
